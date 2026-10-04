@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: lifecycle-snapshot-check
+spec:
+  params:
+    - name: SNAPSHOT
+      type: string
+    - name: expected-version
+      type: string
+  tasks:
+    - name: validate-snapshot
+      params:
+        - name: SNAPSHOT
+          value: $(params.SNAPSHOT)
+        - name: expected-version
+          value: $(params.expected-version)
+      taskSpec:
+        params:
+          - name: SNAPSHOT
+            type: string
+          - name: expected-version
+            type: string
+        steps:
+          - name: validate
+            image: registry.access.redhat.com/ubi9/python-312:latest
+            env:
+              - name: SNAPSHOT
+                value: $(params.SNAPSHOT)
+              - name: EXPECTED_VERSION
+                value: $(params.expected-version)
+            script: >
+              #!/usr/bin/env python3
+
+              import json, os, re
+
+              snapshot=json.loads(os.environ['SNAPSHOT'])
+
+              components=snapshot['components']
+
+              assert components, 'Snapshot has no components'
+
+              for component in components:
+                  assert component['name'] in ('lifecycle-api','lifecycle-worker'), component['name']
+                  assert re.search(r'@sha256:[0-9a-f]{64}$',component['containerImage']), 'Image must be digest-pinned'
+                  if component.get('version'):
+                      assert component['version']==os.environ['EXPECTED_VERSION'], 'Wrong version'
+                  print(component['name'], component.get('version',''), component['containerImage'])
+              print('Snapshot validation passed')

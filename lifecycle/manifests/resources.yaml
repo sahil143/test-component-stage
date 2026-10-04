@@ -1,0 +1,258 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: lifecycle-release
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+  - apiVersion: appstudio.redhat.com/v1alpha1
+    kind: ImageRepository
+    metadata:
+      name: lifecycle-api
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      image:
+        name: sbudhwar-1-tenant/lifecycle-api
+        visibility: public
+  - apiVersion: konflux-ci.dev/v1alpha1
+    kind: Component
+    metadata:
+      name: lifecycle-api
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      containerImage: quay.io/redhat-user-workloads-stage/sbudhwar-1-tenant/lifecycle-api
+      source:
+        url: https://github.com/sahil143/test-component-stage
+        versions:
+          - name: v1
+            revision: codex/lifecycle-v1
+            context: components/api
+            dockerfilePath: Dockerfile
+          - name: v2
+            revision: codex/lifecycle-v2
+            context: components/api
+            dockerfilePath: Dockerfile
+      default-build-pipeline:
+        pull-and-push:
+          pipelinespec-from-bundle:
+            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta:latest
+            name: docker-build-oci-ta
+      actions:
+        create-pipeline-configuration-pr:
+          all-versions: true
+  - apiVersion: appstudio.redhat.com/v1alpha1
+    kind: ImageRepository
+    metadata:
+      name: lifecycle-worker
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      image:
+        name: sbudhwar-1-tenant/lifecycle-worker
+        visibility: public
+  - apiVersion: konflux-ci.dev/v1alpha1
+    kind: Component
+    metadata:
+      name: lifecycle-worker
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      containerImage: quay.io/redhat-user-workloads-stage/sbudhwar-1-tenant/lifecycle-worker
+      source:
+        url: https://github.com/sahil143/test-component-stage
+        versions:
+          - name: v1
+            revision: codex/lifecycle-v1
+            context: components/worker
+            dockerfilePath: Dockerfile
+          - name: v2
+            revision: codex/lifecycle-v2
+            context: components/worker
+            dockerfilePath: Dockerfile
+      default-build-pipeline:
+        pull-and-push:
+          pipelinespec-from-bundle:
+            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta:latest
+            name: docker-build-oci-ta
+      actions:
+        create-pipeline-configuration-pr:
+          all-versions: true
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: ComponentGroup
+    metadata:
+      name: lifecycle-v1
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      components:
+        - name: lifecycle-api
+          componentVersion:
+            name: v1
+        - name: lifecycle-worker
+          componentVersion:
+            name: v1
+      testGraph:
+        lifecycle-v1-smoke: []
+        lifecycle-v1-gate:
+          - name: lifecycle-v1-smoke
+            failFast: true
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: IntegrationTestScenario
+    metadata:
+      name: lifecycle-v1-smoke
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      componentGroup: lifecycle-v1
+      resolverRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/sahil143/test-component-stage
+          - name: revision
+            value: codex/lifecycle-v1
+          - name: pathInRepo
+            value: lifecycle/pipelines/snapshot-check.yaml
+      params:
+        - name: expected-version
+          value: v1
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: IntegrationTestScenario
+    metadata:
+      name: lifecycle-v1-gate
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      componentGroup: lifecycle-v1
+      resolverRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/sahil143/test-component-stage
+          - name: revision
+            value: codex/lifecycle-v1
+          - name: pathInRepo
+            value: lifecycle/pipelines/snapshot-check.yaml
+      params:
+        - name: expected-version
+          value: v1
+  - apiVersion: appstudio.redhat.com/v1alpha1
+    kind: ReleasePlan
+    metadata:
+      name: lifecycle-v1
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+        release.appstudio.openshift.io/auto-release: "true"
+    spec:
+      componentGroup: lifecycle-v1
+      tenantPipeline:
+        serviceAccountName: lifecycle-release
+        pipelineRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/sahil143/test-component-stage
+            - name: revision
+              value: codex/lifecycle-v1
+            - name: pathInRepo
+              value: lifecycle/pipelines/release.yaml
+        timeouts:
+          pipeline: 10m0s
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: ComponentGroup
+    metadata:
+      name: lifecycle-v2
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      components:
+        - name: lifecycle-api
+          componentVersion:
+            name: v2
+        - name: lifecycle-worker
+          componentVersion:
+            name: v2
+      testGraph:
+        lifecycle-v2-smoke: []
+        lifecycle-v2-gate:
+          - name: lifecycle-v2-smoke
+            failFast: true
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: IntegrationTestScenario
+    metadata:
+      name: lifecycle-v2-smoke
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      componentGroup: lifecycle-v2
+      resolverRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/sahil143/test-component-stage
+          - name: revision
+            value: codex/lifecycle-v2
+          - name: pathInRepo
+            value: lifecycle/pipelines/snapshot-check.yaml
+      params:
+        - name: expected-version
+          value: v2
+  - apiVersion: appstudio.redhat.com/v1beta2
+    kind: IntegrationTestScenario
+    metadata:
+      name: lifecycle-v2-gate
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+    spec:
+      componentGroup: lifecycle-v2
+      resolverRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/sahil143/test-component-stage
+          - name: revision
+            value: codex/lifecycle-v2
+          - name: pathInRepo
+            value: lifecycle/pipelines/snapshot-check.yaml
+      params:
+        - name: expected-version
+          value: v2
+  - apiVersion: appstudio.redhat.com/v1alpha1
+    kind: ReleasePlan
+    metadata:
+      name: lifecycle-v2
+      namespace: sbudhwar-1-tenant
+      labels:
+        demo.konflux-ci.dev/lifecycle: new-model-20261004
+        release.appstudio.openshift.io/auto-release: "true"
+    spec:
+      componentGroup: lifecycle-v2
+      tenantPipeline:
+        serviceAccountName: lifecycle-release
+        pipelineRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/sahil143/test-component-stage
+            - name: revision
+              value: codex/lifecycle-v2
+            - name: pathInRepo
+              value: lifecycle/pipelines/release.yaml
+        timeouts:
+          pipeline: 10m0s

@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: lifecycle-tenant-release
+spec:
+  description: Tenant-only lifecycle demonstration. Records release references;
+    does not publish images externally.
+  params:
+    - name: release
+      type: string
+    - name: releasePlan
+      type: string
+    - name: snapshot
+      type: string
+  tasks:
+    - name: record-release
+      params:
+        - name: release
+          value: $(params.release)
+        - name: releasePlan
+          value: $(params.releasePlan)
+        - name: snapshot
+          value: $(params.snapshot)
+      taskSpec:
+        params:
+          - name: release
+            type: string
+          - name: releasePlan
+            type: string
+          - name: snapshot
+            type: string
+        steps:
+          - name: record
+            image: registry.access.redhat.com/ubi9/ubi-micro:latest
+            env:
+              - name: RELEASE
+                value: $(params.release)
+              - name: RELEASEPLAN
+                value: $(params.releasePlan)
+              - name: SNAPSHOT
+                value: $(params.snapshot)
+            script: >
+              #!/bin/sh
+
+              set -eu
+
+              test -n "$RELEASE"
+
+              test -n "$RELEASEPLAN"
+
+              test -n "$SNAPSHOT"
+
+              printf "Tenant release: %s\nPlan: %s\nSnapshot: %s\n" "$RELEASE"
+              "$RELEASEPLAN" "$SNAPSHOT"

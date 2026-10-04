@@ -42,7 +42,7 @@ items:
       default-build-pipeline:
         pull-and-push:
           pipelinespec-from-bundle:
-            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta:latest
+            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta@sha256:4448f915f2ad9036ab714b031505e68cd17f9aef251c921a3fe3d18cee7c9d93
             name: docker-build-oci-ta
       actions:
         create-pipeline-configuration-pr:
@@ -81,7 +81,7 @@ items:
       default-build-pipeline:
         pull-and-push:
           pipelinespec-from-bundle:
-            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta:latest
+            bundle: quay.io/konflux-ci/tekton-catalog/pipeline-docker-build-oci-ta@sha256:4448f915f2ad9036ab714b031505e68cd17f9aef251c921a3fe3d18cee7c9d93
             name: docker-build-oci-ta
       actions:
         create-pipeline-configuration-pr:

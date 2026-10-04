@@ -24,3 +24,9 @@ Observe:
 oc get components.konflux-ci.dev,componentgroups.appstudio.redhat.com -n sbudhwar-1-tenant
 oc get pipelineruns,snapshots,releases -n sbudhwar-1-tenant
 ```
+
+After ImageRepositories are ready, link the component push credentials:
+```sh
+oc secrets link build-pipeline-lifecycle-api lifecycle-api-image-push -n sbudhwar-1-tenant
+oc secrets link build-pipeline-lifecycle-worker lifecycle-worker-image-push -n sbudhwar-1-tenant
+```
